@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vila Folhinha</title>
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root{
+  --ceu:#bfe3f0; --ceu2:#a8d8ea; --grama:#9ed07a; --grama2:#7fb85e;
+  --creme:#fdf8ec; --madeira:#c4874f; --madeira-e:#8a5a2e;
+  --ink:#4a3826; --ink2:#6b5440; --muted:#9a8468;
+  --pessego:#ffb38a; --rosa:#ffa8c5; --amarelo:#ffd97d; --menta:#8fd9c3;
+  --lilas:#c9b2f0; --folha:#5ea043;
+  --ok:#3f9c5a; --ok-l:#e4f5e8; --no:#d2603f; --no-l:#fdeee8;
+}
+body{
+  font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
+  background:linear-gradient(180deg,var(--ceu) 0%,var(--ceu2) 38%,var(--grama) 38%,var(--grama2) 100%);
+  background-attachment:fixed; min-height:100vh; color:var(--ink); font-size:16px; line-height:1.55;
+}
+.wrap{ max-width:720px; margin:0 auto; padding:16px 16px 70px; }
+
+/* HUD */
+.hud{
+  background:var(--creme); border:4px solid var(--madeira-e); border-radius:22px;
+  padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  box-shadow:0 5px 0 rgba(0,0,0,.18);
+}
+.hud-logo{ font-size:19px; font-weight:800; color:var(--madeira-e); letter-spacing:-.01em; }
+.hud-sub{ font-size:11px; color:var(--muted); font-weight:700; }
+.hud-stats{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+.stat{
+  background:#fff; border:2.5px solid var(--madeira); border-radius:18px;
+  padding:5px 13px; font-size:14px; font-weight:800; color:var(--madeira-e); white-space:nowrap;
+}
+.stat b{ color:var(--folha); }
+
+/* NAV */
+.nav{ display:flex; gap:7px; flex-wrap:wrap; margin-bottom:16px; }
+.nb{
+  background:var(--creme); border:3px solid var(--madeira-e); border-radius:18px;
+  padding:8px 15px; font-family:inherit; font-size:14px; font-weight:800; color:var(--madeira-e);
+  cursor:pointer; box-shadow:0 4px 0 var(--madeira-e); transition:all .1s;
+}
+.nb:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--madeira-e); }
+.nb.on{ background:var(--amarelo); }
+
+.tela{ display:none; } .tela.on{ display:block; animation:pop .25s ease; }
+@keyframes pop{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* PAINEL */
+.painel{
+  background:var(--creme); border:4px solid var(--madeira-e); border-radius:24px;
+  padding:18px; margin-bottom:16px; box-shadow:0 5px 0 rgba(0,0,0,.18);
+}
+.p-titulo{ font-size:19px; font-weight:800; color:var(--madeira-e); margin-bottom:4px; }
+.p-sub{ font-size:13.5px; color:var(--muted); font-weight:600; margin-bottom:12px; }
+
+/* MORADORES */
+.vila{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+.casa{
+  background:#fff; border:3px solid var(--madeira); border-radius:20px;
+  padding:14px 10px; text-align:center; cursor:pointer; transition:all .12s;
+  box-shadow:0 4px 0 rgba(0,0,0,.12);
+}
+.casa:hover{ transform:translateY(-3px); box-shadow:0 7px 0 rgba(0,0,0,.12); }
+.casa.pronta{ background:var(--ok-l); border-color:var(--ok); }
+.avatar{ font-size:40px; line-height:1; }
+.nome{ font-size:15px; font-weight:800; margin-top:4px; }
+.especie{ font-size:11.5px; color:var(--muted); font-weight:700; }
+.coracoes{ font-size:12px; margin-top:5px; letter-spacing:1px; }
+.selo{
+  display:inline-block; background:var(--ok); color:#fff; border-radius:12px;
+  padding:2px 9px; font-size:10.5px; font-weight:800; margin-top:5px;
+}
+
+/* DIÁLOGO */
+.balao{
+  background:#fff; border:3.5px solid var(--madeira-e); border-radius:20px;
+  padding:16px 18px; position:relative; margin-bottom:14px;
+}
+.balao-nome{
+  position:absolute; top:-14px; left:16px; background:var(--amarelo);
+  border:2.5px solid var(--madeira-e); border-radius:14px; padding:2px 12px;
+  font-size:12.5px; font-weight:800;
+}
+.balao-txt{ font-size:16px; font-weight:600; line-height:1.55; margin-top:4px; }
+.balao-obs{ font-size:12.5px; font-style:italic; color:var(--muted); margin-top:8px; }
+.cena-ctx{
+  background:var(--amarelo); border:3px solid var(--madeira-e); border-radius:16px;
+  padding:11px 15px; font-size:13.5px; font-weight:700; margin-bottom:14px;
+}
+.cena-ctx span{ font-size:10.5px; text-transform:uppercase; letter-spacing:.09em; opacity:.6; display:block; }
+
+/* OPÇÕES */
+.ops{ display:flex; flex-direction:column; gap:9px; }
+.op{
+  background:#fff; border:3px solid var(--madeira); border-radius:16px;
+  padding:12px 15px; font-family:inherit; font-size:14.5px; font-weight:700; color:var(--ink2);
+  cursor:pointer; text-align:left; transition:all .12s; box-shadow:0 3px 0 rgba(0,0,0,.1);
+}
+.op:hover:not(:disabled){ background:var(--amarelo); transform:translateY(-2px); }
+.op:disabled{ cursor:default; opacity:.65; }
+.op.certa{ background:var(--ok-l); border-color:var(--ok); color:var(--ok); opacity:1; }
+.op.errada{ background:var(--no-l); border-color:var(--no); color:var(--no); opacity:1; }
+
+.fala-livre{
+  background:var(--menta); border:3px solid var(--madeira-e); border-radius:16px;
+  padding:14px 16px; font-size:15px; font-weight:700; margin-bottom:12px;
+}
+.btn{
+  font-family:inherit; font-size:15px; font-weight:800; padding:11px 22px;
+  border-radius:18px; border:3px solid var(--madeira-e); cursor:pointer;
+  box-shadow:0 4px 0 var(--madeira-e); transition:all .1s;
+}
+.btn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--madeira-e); }
+.b-am{ background:var(--amarelo); color:var(--madeira-e); }
+.b-me{ background:var(--menta); color:var(--madeira-e); }
+.b-br{ background:#fff; color:var(--madeira-e); }
+.linha{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+
+.fb{ border-radius:16px; padding:13px 16px; margin-top:13px; font-size:14px; font-weight:700; display:none; line-height:1.6; }
+.fb.on{ display:block; animation:pop .25s ease; }
+.fb-ok{ background:var(--ok-l); border:3px solid var(--ok); color:#245c35; }
+.fb-no{ background:var(--no-l); border:3px solid var(--no); color:#8a3a20; }
+.premio{ font-size:13px; font-weight:800; color:var(--folha); margin-top:6px; }
+
+/* LOJA */
+.itens{ display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:11px; }
+.item{
+  background:#fff; border:3px solid var(--madeira); border-radius:18px;
+  padding:12px 8px; text-align:center; box-shadow:0 3px 0 rgba(0,0,0,.1);
+}
+.item-ico{ font-size:34px; line-height:1; }
+.item-nome{ font-size:13px; font-weight:800; margin-top:4px; }
+.item-preco{ font-size:12.5px; font-weight:800; color:var(--folha); margin:4px 0 7px; }
+.bc{
+  width:100%; font-family:inherit; font-size:12.5px; font-weight:800;
+  padding:7px; border-radius:13px; border:2.5px solid var(--madeira-e);
+  background:var(--amarelo); color:var(--madeira-e); cursor:pointer;
+}
+.bc:disabled{ background:#e8e0d2; color:#a99; cursor:default; border-color:#c4b8a4; }
+.bc.tem{ background:var(--ok-l); color:var(--ok); border-color:var(--ok); }
+
+/* PRACA */
+.praca{
+  background:linear-gradient(180deg,#cfeeb8,#a9d98c);
+  border:4px solid var(--madeira-e); border-radius:22px;
+  min-height:190px; padding:16px; display:flex; flex-wrap:wrap; gap:14px;
+  align-content:flex-start; justify-content:center; align-items:center;
+}
+.praca-item{ font-size:44px; line-height:1; animation:pop .4s ease; }
+.praca-vazia{ color:#6b8a52; font-size:14px; font-weight:700; text-align:center; width:100%; padding:50px 10px; }
+
+/* MISSAO */
+.missao{
+  background:var(--lilas); border:3px solid var(--madeira-e); border-radius:18px;
+  padding:14px 16px; margin-bottom:11px;
+}
+.missao-tag{
+  display:inline-block; background:#fff; border:2.5px solid var(--madeira-e);
+  border-radius:13px; padding:2px 11px; font-size:11px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.07em; margin-bottom:7px;
+}
+.missao-txt{ font-size:14.5px; font-weight:700; line-height:1.5; }
+.missao-dica{ font-size:12.5px; font-weight:600; color:#5a4a7a; margin-top:7px; }
+.checks{ display:flex; gap:9px; margin-top:11px; }
+.checks .btn{ flex:1; font-size:13.5px; padding:9px; }
+
+.nota{
+  width:100%; border:3px solid var(--madeira); border-radius:14px; padding:10px 13px;
+  font-family:inherit; font-size:14.5px; color:var(--ink); background:#fff;
+  resize:vertical; min-height:58px; outline:none; line-height:1.5;
+}
+.nota:focus{ border-color:var(--folha); }
+.nota::placeholder{ color:#bfae96; font-style:italic; }
+.nota-lb{ font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:11px 0 5px; }
+
+.prog{ height:11px; background:#e4dac6; border:2.5px solid var(--madeira); border-radius:10px; overflow:hidden; margin:8px 0 4px; }
+.prog i{ display:block; height:100%; background:var(--folha); width:0; transition:width .5s ease; }
+.prog-lb{ font-size:12px; font-weight:700; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hud">
+    <div>
+      <div class="hud-logo">Vila Folhinha</div>
+      <div class="hud-sub">Ajude os moradores a se entenderem</div>
+    </div>
+    <div class="hud-stats">
+      <div class="stat">🍃 <b id="sFolhas">0</b></div>
+      <div class="stat">⭐ <b id="sNivel">1</b></div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nb on" onclick="ir('vila',this)">🏡 Vila</button>
+    <button class="nb" onclick="ir('missoes',this)">🎭 Missões</button>
+    <button class="nb" onclick="ir('loja',this)">🛒 Lojinha</button>
+    <button class="nb" onclick="ir('praca',this)">🌳 Praça</button>
+  </div>
+
+  <!-- VILA -->
+  <div class="tela on" id="t-vila">
+    <div class="painel">
+      <div class="p-titulo">Os moradores precisam de você</div>
+      <div class="p-sub">Cada morador tem uma situação confusa para resolver. Clique em quem você quer ajudar e ganhe folhinhas.</div>
+      <div class="prog"><i id="progBar"></i></div>
+      <div class="prog-lb" id="progLb">0 de 18 conversas resolvidas</div>
+    </div>
+    <div class="vila" id="vilaGrid"></div>
+  </div>
+
+  <!-- CONVERSA -->
+  <div class="tela" id="t-conversa">
+    <div class="painel">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div class="avatar" id="cAvatar">🦊</div>
+        <div>
+          <div class="p-titulo" id="cNome" style="margin:0">Morador</div>
+          <div class="p-sub" id="cProg" style="margin:0">Conversa 1 de 3</div>
+        </div>
+      </div>
+      <div class="cena-ctx" id="cCtx"><span>O que está acontecendo</span><div id="cCtxTxt"></div></div>
+      <div class="balao">
+        <div class="balao-nome" id="cQuem">Alguém diz</div>
+        <div class="balao-txt" id="cFala"></div>
+        <div class="balao-obs" id="cObs"></div>
+      </div>
+      <div class="p-sub" id="cPergunta" style="margin-bottom:10px"></div>
+      <div class="ops" id="cOps"></div>
+      <div class="fb" id="cFb"></div>
+      <div class="linha">
+        <button class="btn b-am" id="cProx" style="display:none" onclick="proximaConversa()">Continuar</button>
+        <button class="btn b-br" onclick="ir('vila',document.querySelectorAll('.nb')[0])">Voltar à vila</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSOES -->
+  <div class="tela" id="t-missoes">
+    <div class="painel">
+      <div class="p-titulo">Missões da pracinha</div>
+      <div class="p-sub">Missões de atuação! Aqui você fala em voz alta. Tentar já vale folhinhas.</div>
+      <div class="missao">
+        <div class="missao-tag" id="mTag">Missão</div>
+        <div class="missao-txt" id="mTxt"></div>
+        <div class="missao-dica" id="mDica"></div>
+      </div>
+      <div class="checks">
+        <button class="btn b-me" onclick="cumprirMissao(true)">Mandei bem! 🍃15</button>
+        <button class="btn b-am" onclick="cumprirMissao(false)">Tentei! 🍃8</button>
+      </div>
+      <div class="fb" id="mFb"></div>
+      <div class="linha"><button class="btn b-br" onclick="sortearMissao()">Outra missão</button></div>
+    </div>
+  </div>
+
+  <!-- LOJA -->
+  <div class="tela" id="t-loja">
+    <div class="painel">
+      <div class="p-titulo">Lojinha da Vila</div>
+      <div class="p-sub">Troque suas folhinhas por enfeites e deixe a praça do seu jeito.</div>
+      <div class="itens" id="lojaGrid"></div>
+    </div>
+  </div>
+
+  <!-- PRACA -->
+  <div class="tela" id="t-praca">
+    <div class="painel">
+      <div class="p-titulo">A praça da Vila</div>
+      <div class="p-sub">Tudo que você comprou aparece aqui. Vá enchendo a praça!</div>
+      <div class="praca" id="pracaBox"><div class="praca-vazia">A praça está vazia por enquanto.<br>Resolva conversas, ganhe folhinhas e compre enfeites na lojinha!</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function emb(a){return [...a].sort(()=>Math.random()-.5)}
+
+let folhas=0, resolvidas=0;
+const TOTAL=18;
+
+const MORADORES=[
+ {id:'luna', nome:'Luna', esp:'coelha sonhadora', av:'🐰', convs:[
+  {ctx:'Luna passou a tarde fazendo um bolo de cenoura para o vizinho Teco. Ele provou e disse isso:',
+   quem:'Teco diz', fala:'Nossa... que bolo... interessante.', obs:'Ele falou devagar e deu um sorrisinho torto',
+   perg:'O que Teco quis dizer de verdade?',
+   ops:['Que achou o bolo muito gostoso','Que não gostou mas tentou ser educado','Que nunca tinha comido bolo de cenoura'], c:1,
+   fb:'A palavra "interessante" quase nunca é elogio! Junto com a fala devagar e o sorrisinho, mostra que ele não gostou mas não quis magoar a Luna.'},
+  {ctx:'Luna convidou a Nina para ver as estrelas. A Nina respondeu assim:',
+   quem:'Nina diz', fala:'Ah, hoje eu tô meio cansada... mas se você quiser muito eu vou.', obs:'Ela bocejou duas vezes enquanto falava',
+   perg:'O que a Luna deveria responder?',
+   ops:['"Então vamos! Você disse que ia se eu quisesse"','"Pode descansar hoje. A gente vê as estrelas outro dia, combinado?"','"Tudo bem, deixa pra lá então" e sair chateada'], c:1,
+   fb:'A Nina deu uma pista clara de cansaço. Oferecer outro dia respeita ela sem desistir do passeio nem ficar magoada.'},
+  {ctx:'Luna errou o caminho e as duas chegaram atrasadas na festa. A Nina falou:',
+   quem:'Nina diz', fala:'Parabéns pelo atalho, hein.', obs:'Elas andaram vinte minutos a mais por causa do atalho',
+   perg:'Que tipo de fala é essa?',
+   ops:['Elogio sincero pelo caminho','Ironia: ela quis dizer o contrário','Pergunta sobre o atalho'], c:1,
+   fb:'Ironia! As palavras elogiam, mas a situação foi ruim. Quando alguém "elogia" bem na hora em que algo deu errado, costuma ser ironia.'}
+ ]},
+ {id:'teco', nome:'Teco', esp:'texugo direto', av:'🦡', convs:[
+  {ctx:'Teco emprestou o ancinho novo dele para o Bentô. Voltou com o cabo rachado. Hoje o Bentô pediu de novo:',
+   quem:'Teco diz', fala:'Ah... de novo? Tá, pode levar.', obs:'Ele demorou para responder e depois mandou três recadinhos pedindo cuidado',
+   perg:'O que o Teco está sentindo de verdade?',
+   ops:['Ele adora emprestar as coisas','Ele não queria emprestar mas não soube dizer não','Ele já tinha esquecido do cabo rachado'], c:1,
+   fb:'O "Ah... de novo?", a demora e os três recadinhos de cuidado mostram que ele disse sim com a boca, mas não com a vontade.'},
+  {ctx:'Bentô percebeu a hesitação do Teco. O que ele poderia dizer?',
+   quem:'Bentô pensa', fala:'Como eu respondo isso?', obs:'',
+   perg:'Qual é a melhor resposta do Bentô?',
+   ops:['"Valeu! Semana que vem eu pego de novo"','"Teco, se você preferir não emprestar, tudo bem! Eu entendo, da última vez voltou quebrado"','"Você tá sendo chato por causa de um ancinho"'], c:1,
+   fb:'Reconhecer a hesitação E o motivo dela mostra que o Bentô prestou atenção. Isso cuida da amizade mais do que fingir que não percebeu.'},
+  {ctx:'O Teco passou a manhã inteira consertando a ponte da vila sozinho. Ninguém comentou nada. No fim do dia ele disse:',
+   quem:'Teco diz', fala:'Tá tudo certo, a ponte ficou boa. Foi rapidinho.', obs:'Ele trabalhou seis horas e estava com as mãos sujas e os ombros caídos',
+   perg:'O que ele gostaria de ouvir?',
+   ops:['"Que bom que foi rápido!"','"Teco, deu muito trabalho, né? Obrigada por consertar pra todo mundo"','"Da próxima vez chama a gente antes"'], c:1,
+   fb:'Ele disse "foi rapidinho" mas o corpo contou outra história. Reconhecer o esforço é o que ele estava esperando sem pedir.'}
+ ]},
+ {id:'nina', nome:'Nina', esp:'gata tímida', av:'🐱', convs:[
+  {ctx:'Nina é nova na vila. Fica sempre no canto da pracinha, sozinha. Os moradores comentaram:',
+   quem:'Um morador diz', fala:'Ela deve se achar demais, não fala com ninguém.', obs:'A Nina olha para o grupo o tempo todo e abaixa a cabeça quando alguém olha de volta',
+   perg:'O que as pistas mostram de verdade?',
+   ops:['Ela é mesmo metida','Ela é tímida e queria se aproximar','Ela não gosta da vila'], c:1,
+   fb:'Olhar para o grupo e abaixar a cabeça é pista de timidez, não de arrogância. O mesmo comportamento pode ter explicações bem diferentes!'},
+  {ctx:'Você quer chamar a Nina para o grupo sem deixar ela sem graça. O que dizer?',
+   quem:'Você pensa', fala:'Como eu chamo ela?', obs:'',
+   perg:'Qual convite funciona melhor?',
+   ops:['"Gente, vamos todos falar com a Nina!"','"Oi! Posso sentar aqui? Se você preferir ficar sozinha, tudo bem também"','Sentar do lado sem falar nada'], c:1,
+   fb:'Esse convite oferece companhia e ao mesmo tempo respeita a vontade dela. Chamar a vila inteira de uma vez poderia deixá-la ainda mais sem graça.'},
+  {ctx:'Depois de semanas, a Nina fez um desenho da vila e mostrou para você. Ela disse:',
+   quem:'Nina diz', fala:'Ah, não ficou grande coisa não...', obs:'Ela levou o desenho na mochila o dia inteiro antes de criar coragem de mostrar',
+   perg:'O que ela está comunicando?',
+   ops:['Ela realmente acha o desenho ruim e não liga','Ela se esforçou muito e está insegura, esperando uma reação','Ela quer que você desenhe no lugar dela'], c:1,
+   fb:'Quem carrega o desenho o dia todo se importa muito! O "não ficou grande coisa" protege ela caso a reação não seja boa. É insegurança, não desinteresse.'}
+ ]},
+ {id:'bento', nome:'Bentô', esp:'urso distraído', av:'🐻', convs:[
+  {ctx:'Bentô esqueceu o aniversário da Luna. No dia seguinte ele pediu desculpas e ela respondeu:',
+   quem:'Luna diz', fala:'Relaxa, nem foi nada demais.', obs:'Ela tinha arrumado a toca inteira e feito docinhos para o dia',
+   perg:'Qual é o melhor conserto do Bentô?',
+   ops:['"Que bom que você entendeu!"','"Luna, você arrumou tudo e fez docinhos. Foi importante sim, e eu esqueci. Me desculpa de verdade"','"Eu sou o pior amigo do mundo, você devia me odiar"'], c:1,
+   fb:'O conserto bom reconhece o que aconteceu sem minimizar e sem virar drama. Quando a gente exagera a própria culpa, a outra pessoa acaba tendo que consolar quem errou!'},
+  {ctx:'Bentô chegou atrasado no mutirão da vila pela terceira vez. O Teco falou:',
+   quem:'Teco diz', fala:'Tudo bem, a gente já acostumou.', obs:'Ele não olhou para o Bentô ao dizer isso',
+   perg:'O que significa esse "já acostumou"?',
+   ops:['Está tudo perdoado mesmo','É mágoa: significa que eles desistiram de contar com ele','Ele está elogiando a pontualidade do Bentô'], c:1,
+   fb:'"Já acostumei" quase nunca é perdão. É o jeito de dizer "parei de esperar algo diferente de você", e isso dói mais do que uma bronca.'},
+  {ctx:'Bentô contou uma novidade empolgado e a Luna respondeu rapidinho:',
+   quem:'Luna diz', fala:'que legal. ah, você viu a chuva ontem?', obs:'A Luna sempre responde com muitos detalhes e emojis',
+   perg:'O que o Bentô poderia perguntar?',
+   ops:['Ignorar e falar da chuva também','"Senti que você respondeu meio corrido. Tá tudo bem contigo?"','"Nossa, que empolgação hein. Valeu pelo apoio."'], c:1,
+   fb:'Essa pergunta nomeia a pista sem acusar. Abre espaço para ela contar se está acontecendo algo. A resposta irônica fecharia a porta.'}
+ ]},
+ {id:'pingo', nome:'Pingo', esp:'sapo brincalhão', av:'🐸', convs:[
+  {ctx:'Pingo fez uma piada sobre o Teco sempre chegar sujo de terra. Todo mundo riu, menos o Teco.',
+   quem:'Teco diz', fala:'kkk é.', obs:'Ele saiu da roda logo depois e não voltou',
+   perg:'O que aconteceu ali?',
+   ops:['Teco achou graça e foi fazer outra coisa','A piada o magoou, mesmo ele tendo rido','Teco não entendeu a piada'], c:1,
+   fb:'Rir não garante que gostou! O "kkk é." curtinho e sair da roda logo depois mostram que a piada incomodou. O comportamento conta a verdade.'},
+  {ctx:'Pingo percebeu que magoou o Teco. O que ele faz?',
+   quem:'Pingo pensa', fala:'Será que falo alguma coisa?', obs:'',
+   perg:'Qual é o melhor conserto?',
+   ops:['"Teco, foi brincadeira, não precisa ficar assim"','"Teco, minha piada te deixou mal, né? Desculpa, eu te expus na frente de todo mundo"','Fingir que não aconteceu nada'], c:1,
+   fb:'"Foi brincadeira" não é pedido de desculpas: joga a culpa em quem ficou magoado. Reconhecer o que aconteceu de verdade é o que repara.'},
+  {ctx:'O Pingo chamou todo mundo para pescar, menos a Nina, sem querer. Ela comentou na foto:',
+   quem:'Nina comenta', fala:'Que lindo o lago! Deve ter sido divertido.', obs:'Comentou um minuto depois da foto, de madrugada',
+   perg:'O que esse comentário esconde?',
+   ops:['Ela estava feliz pelos amigos e nada mais','Ela ficou magoada por ficar de fora e disfarçou com educação','Ela quer aprender a pescar'], c:1,
+   fb:'"Deve ter sido divertido" é a frase de quem ficou de fora olhando. E comentar um minuto depois, de madrugada, mostra que ela estava acompanhando.'}
+ ]},
+ {id:'coruja', nome:'Dona Corina', esp:'coruja sábia', av:'🦉', convs:[
+  {ctx:'Dona Corina é a mais velha da vila e adora ditados. Hoje ela viu o Pingo desistir de aprender a nadar e disse:',
+   quem:'Dona Corina diz', fala:'Devagar se vai ao longe, meu jovem.', obs:'',
+   perg:'O que ela quis dizer?',
+   ops:['Que o Pingo deve nadar bem devagarinho','Que progresso lento também é progresso, cada um no seu tempo','Que ele deve desistir e tentar outra coisa'], c:1,
+   fb:'Não é sobre velocidade! O ditado fala do tempo de cada um: quem avança com calma e constância chega mais longe que quem tem pressa.'},
+  {ctx:'A Luna perdeu o bolo que levou a tarde inteira fazendo. Estava chorando quando a Dona Corina chegou.',
+   quem:'Dona Corina diz', fala:'Não adianta chorar sobre o leite derramado, querida. Faz outro!', obs:'A Luna parou de falar e foi embora',
+   perg:'O ditado está certo, mas por que a Luna ficou mal?',
+   ops:['Porque o ditado está errado','Porque ela queria colo primeiro, e recebeu conselho na hora do choro','Porque ela não entendeu o ditado'], c:1,
+   fb:'O ditado é sábio, mas a hora era errada! Quem está chorando precisa primeiro ser acolhido. Conselho lógico em momento de dor soa como pressa de encerrar o assunto.'},
+  {ctx:'A Dona Corina viu que o Bentô estava sendo deixado de fora dos mutirões de propósito. Ela comentou com você:',
+   quem:'Dona Corina diz', fala:'Em boca fechada não entra mosca, não é mesmo?', obs:'',
+   perg:'Esse ditado serve para esta situação?',
+   ops:['Sim, é melhor não se meter','Não: quando alguém está sendo excluído, ficar calado é omissão','Sim, porque falar sempre cria confusão'], c:1,
+   fb:'Esse ditado serve para outras situações, mas não para essa. Quando alguém precisa de ajuda, o silêncio deixa de ser sabedoria e vira omissão. Ditados são conselhos gerais, cada caso precisa ser pensado!'}
+ ]}
+];
+
+const MISSOES=[
+ {tag:'Camaleão', txt:'Fale "Que dia lindo na vila" de quatro jeitos: sincero, irônico, magoado e cansado.', dica:'Mude a velocidade da fala e onde a sua voz sobe ou desce.'},
+ {tag:'Nível novela', txt:'Fale "Eu não acredito nisso!" no tom mais dramático e exagerado que conseguir.', dica:'O exagero é o degrau para chegar no tom natural. Depois tente a versão discreta.'},
+ {tag:'Falsa alegria', txt:'Finja estar animada com um presente que você não gostou: "Adorei, era tudo que eu queria!"', dica:'Esse é difícil! É o que as pessoas fazem de verdade por educação.'},
+ {tag:'Antes e depois', txt:'Fale "Tá tudo bem" duas vezes: de quem está bem mesmo, e de quem está magoado e não quer falar.', dica:'Qual a diferença entre as duas? Consegue explicar?'},
+ {tag:'Só com a cara', txt:'Sem falar nada, mostre só com o rosto e o corpo: magoado, animado, em dúvida e cansado.', dica:'As pistas do corpo vêm antes da voz. Treine as duas!'},
+ {tag:'Eco', txt:'A Lari fala uma frase com um tom. Você repete igualzinho, imitando o tom dela.', dica:'Imitar é o melhor treino para depois produzir sozinha.'},
+ {tag:'Termômetro', txt:'Fale "Adorei seu presente" com ironia em cinco níveis: 1 quase invisível até 5 totalmente exagerado.', dica:'Depois conversem: qual nível funciona entre amigas? Qual seria grosseiro?'},
+ {tag:'Consolo', txt:'Imagine que a Luna perdeu o bolo dela. Fale "Que droga, eu sinto muito" com o tom certo.', dica:'Voz mais baixa, mais devagar, sem pressa de resolver.'},
+ {tag:'Diretora', txt:'Escolha uma emoção e dirija a Lari: diga como ela deve falar "Já terminei tudo". Depois avalie!', dica:'Você vira a diretora de cena. Dê instruções bem específicas.'},
+ {tag:'Ironia leve', txt:'Fale "Que rápido você respondeu" de um jeito irônico mas suave, sem ser grosseira.', dica:'Ironia forte machuca, ironia leve é brincadeira entre amigas. Onde fica o limite?'}
+];
+
+const ITENS=[
+ {ico:'🌷', nome:'Canteiro de tulipas', preco:30},
+ {ico:'🪑', nome:'Banquinho de madeira', preco:40},
+ {ico:'⛲', nome:'Fonte da praça', preco:90},
+ {ico:'🏮', nome:'Lampião', preco:45},
+ {ico:'🌳', nome:'Árvore frondosa', preco:60},
+ {ico:'🎏', nome:'Bandeirinhas', preco:35},
+ {ico:'🦢', nome:'Laguinho com cisne', preco:110},
+ {ico:'🍄', nome:'Trio de cogumelos', preco:25},
+ {ico:'🎡', nome:'Roda gigante', preco:150},
+ {ico:'🌻', nome:'Girassóis', preco:30},
+ {ico:'🕯️', nome:'Luminárias', preco:50},
+ {ico:'🎪', nome:'Tenda de festa', preco:130}
+];
+
+let moradorAtual=null, convIdx=0, respondido=false, missaoAtual=null;
+const feitos={}; MORADORES.forEach(m=>feitos[m.id]=0);
+const comprados=[];
+
+function ir(id,btn){
+  ['vila','conversa','missoes','loja','praca'].forEach(t=>document.getElementById('t-'+t).classList.remove('on'));
+  document.getElementById('t-'+id).classList.add('on');
+  if(btn){ document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function atualizarHud(){
+  document.getElementById('sFolhas').textContent=folhas;
+  document.getElementById('sNivel').textContent=Math.floor(resolvidas/3)+1;
+  const pc=Math.round(resolvidas/TOTAL*100);
+  document.getElementById('progBar').style.width=pc+'%';
+  document.getElementById('progLb').textContent=resolvidas+' de '+TOTAL+' conversas resolvidas';
+}
+function montarVila(){
+  document.getElementById('vilaGrid').innerHTML=MORADORES.map(m=>{
+    const f=feitos[m.id], done=f>=3;
+    const cor='❤️'.repeat(f)+'🤍'.repeat(3-f);
+    return `<div class="casa ${done?'pronta':''}" onclick="abrirMorador('${m.id}')">
+      <div class="avatar">${m.av}</div>
+      <div class="nome">${m.nome}</div>
+      <div class="especie">${m.esp}</div>
+      <div class="coracoes">${cor}</div>
+      ${done?'<div class="selo">Amizade máxima!</div>':''}
+    </div>`;
+  }).join('');
+}
+function abrirMorador(id){
+  moradorAtual=MORADORES.find(m=>m.id===id);
+  convIdx=feitos[id]>=3?0:feitos[id];
+  ir('conversa');
+  mostrarConversa();
+}
+function mostrarConversa(){
+  respondido=false;
+  const m=moradorAtual, c=m.convs[convIdx];
+  document.getElementById('cAvatar').textContent=m.av;
+  document.getElementById('cNome').textContent=m.nome;
+  document.getElementById('cProg').textContent='Conversa '+(convIdx+1)+' de 3  ·  '+m.esp;
+  document.getElementById('cCtxTxt').textContent=c.ctx;
+  document.getElementById('cQuem').textContent=c.quem;
+  document.getElementById('cFala').textContent='"'+c.fala+'"';
+  const obs=document.getElementById('cObs');
+  obs.textContent=c.obs||''; obs.style.display=c.obs?'block':'none';
+  document.getElementById('cPergunta').textContent=c.perg;
+  const sh=c.ops.map((o,j)=>({t:o,o:j})).sort(()=>Math.random()-.5);
+  const nc=sh.findIndex(x=>x.o===c.c);
+  document.getElementById('cOps').innerHTML=sh.map((x,j)=>
+    `<button class="op" onclick="responder(${j},${nc},this)">${esc(x.t)}</button>`).join('');
+  const fb=document.getElementById('cFb'); fb.className='fb'; fb.innerHTML='';
+  document.getElementById('cProx').style.display='none';
+}
+function responder(escolha,certa,btn){
+  if(respondido)return; respondido=true;
+  const ops=document.querySelectorAll('#cOps .op');
+  ops.forEach(o=>o.disabled=true);
+  ops[certa].classList.add('certa');
+  const c=moradorAtual.convs[convIdx];
+  const fb=document.getElementById('cFb');
+  if(escolha===certa){
+    folhas+=20;
+    fb.className='fb on fb-ok';
+    fb.innerHTML='Isso mesmo! '+esc(c.fb)+'<div class="premio">+20 folhinhas 🍃</div>';
+  } else {
+    btn.classList.add('errada');
+    folhas+=8;
+    fb.className='fb on fb-no';
+    fb.innerHTML='Quase! A resposta certa está em verde. '+esc(c.fb)+'<div class="premio">+8 folhinhas por tentar 🍃</div>';
+  }
+  if(feitos[moradorAtual.id]===convIdx){ feitos[moradorAtual.id]++; resolvidas++; }
+  atualizarHud(); montarVila(); montarLoja();
+  document.getElementById('cProx').style.display='inline-block';
+  document.getElementById('cProx').textContent = convIdx<2 ? 'Próxima conversa' : 'Voltar à vila';
+}
+function proximaConversa(){
+  if(convIdx<2){ convIdx++; mostrarConversa(); }
+  else { ir('vila',document.querySelectorAll('.nb')[0]); }
+}
+function sortearMissao(){
+  missaoAtual=MISSOES[Math.floor(Math.random()*MISSOES.length)];
+  document.getElementById('mTag').textContent=missaoAtual.tag;
+  document.getElementById('mTxt').textContent=missaoAtual.txt;
+  document.getElementById('mDica').textContent=missaoAtual.dica;
+  const fb=document.getElementById('mFb'); fb.className='fb'; fb.innerHTML='';
+  document.querySelectorAll('.checks .btn').forEach(b=>b.disabled=false);
+}
+function cumprirMissao(bem){
+  document.querySelectorAll('.checks .btn').forEach(b=>b.disabled=true);
+  folhas += bem?15:8;
+  const fb=document.getElementById('mFb');
+  fb.className='fb on fb-ok';
+  fb.innerHTML = (bem?'A vila inteira aplaudiu!':'Tentar já vale muito! Toda atuação conta.')+'<div class="premio">+'+(bem?15:8)+' folhinhas 🍃</div>';
+  atualizarHud(); montarLoja();
+}
+function montarLoja(){
+  document.getElementById('lojaGrid').innerHTML=ITENS.map((it,i)=>{
+    const tem=comprados.includes(i);
+    const pode=folhas>=it.preco;
+    return `<div class="item">
+      <div class="item-ico">${it.ico}</div>
+      <div class="item-nome">${it.nome}</div>
+      <div class="item-preco">🍃 ${it.preco}</div>
+      <button class="bc ${tem?'tem':''}" ${tem||!pode?'disabled':''} onclick="comprar(${i})">
+        ${tem?'Na praça ✓':(pode?'Comprar':'Folhas de menos')}
+      </button>
+    </div>`;
+  }).join('');
+}
+function comprar(i){
+  const it=ITENS[i];
+  if(folhas<it.preco||comprados.includes(i))return;
+  folhas-=it.preco; comprados.push(i);
+  atualizarHud(); montarLoja(); montarPraca();
+}
+function montarPraca(){
+  const box=document.getElementById('pracaBox');
+  if(!comprados.length){ box.innerHTML='<div class="praca-vazia">A praça está vazia por enquanto.<br>Resolva conversas, ganhe folhinhas e compre enfeites na lojinha!</div>'; return; }
+  box.innerHTML=comprados.map(i=>`<div class="praca-item" title="${ITENS[i].nome}">${ITENS[i].ico}</div>`).join('');
+}
+montarVila(); montarLoja(); montarPraca(); sortearMissao(); atualizarHud();
+</script>
+</body>
+</html>
